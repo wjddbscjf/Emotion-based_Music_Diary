@@ -1,0 +1,27 @@
+<section class="panel">
+  <h2>Recommendations</h2>
+  <div class="box">
+    <strong>Mood:</strong> <%= analysis.mood %>
+    &nbsp;|&nbsp;<strong>Keywords:</strong> <%= (analysis.keywords||[]).join(', ') %>
+  </div>
+
+  <div class="grid">
+    <% recos.forEach(t => { %>
+      <div class="card">
+        <% if (t.albumImg) { %><img src="<%= t.albumImg %>" alt="cover"/><% } %>
+        <div class="meta">
+          <div class="title"><%= t.title %></div>
+          <div class="artists"><%= t.artists.join(', ') %></div>
+        </div>
+        <div class="links">
+          <% if (t.preview) { %>
+            <audio controls src="<%= t.preview %>"></audio>
+          <% } %>
+          <% if (t.url) { %>
+            <a class="btn small" href="<%= t.url %>" target="_blank">Open</a>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</section>

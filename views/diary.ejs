@@ -1,0 +1,14 @@
+<section class="panel">
+  <h2>Write</h2>
+  <form method="post" action="/diary/analyze">
+    <textarea name="text" rows="10" placeholder="오늘 기분과 상황을 적어주세요." required></textarea>
+    <button class="btn" type="submit">Analyze</button>
+  </form>
+
+  <% if (analysis) { %>
+    <div class="box">
+      <h3>Last Analysis</h3>
+      <pre><%= JSON.stringify(analysis, null, 2) %></pre>
+    </div>
+  <% } %>
+</section>
