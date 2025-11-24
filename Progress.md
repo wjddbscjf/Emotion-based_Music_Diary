@@ -6,6 +6,7 @@
 
 ---
 **일기 작성 화면**
+
 <img src = "images/diary.png" width = 600>
 
 메인 화면에서 Start Diary 버튼을 누르면 해당 화면으로 넘어갑니다.
