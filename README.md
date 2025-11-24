@@ -1,5 +1,7 @@
 # 🎵 감정 기반 음악 추천 일기 (Emotion-based Music Diary)
 ---
+
+[진행과정](Progress.md)
 <img src="images/logo_2.png" width=400>
 
 ## 🧠 Abstract
@@ -46,7 +48,7 @@
 | 정윤철 | 🎨 Frontend Developer | 메인 UI, 감정별 테마, 일기 작성 페이지 |
 | 정윤철 | 🧱 Deployment & QA | GitHub 배포, 버그 테스트, README 정리 |
 
->  아직 초기 구상 단계로, 역할은 변경될 수 있습니다. (2025/10/29 기준)
+
 
 ---
 
@@ -65,6 +67,19 @@
 
 ---
 
+
+## 진행과정
+
+- [X] WEEK 1
+- [X] WEEK 2
+- [X] WEEK 3 
+- [ ] WEEK 4 (진행 중)
+- [ ] WEEK 5
+- [ ] WEEK 6
+- [ ] WEEK 7 (FINAL)
+
+---
+
 ## 📦 Installation & Run Guide
 
 ```bash
@@ -77,15 +92,5 @@ npm install
 # 3️⃣ Run the Project
 npm start
 ```
----
-## 진행과정
-
-- [X] WEEK 1
-- [ ] WEEK 2
-- [ ] WEEK 3 
-- [ ] WEEK 4
-- [ ] WEEK 5
-- [ ] WEEK 6
-- [ ] WEEK 7 (FINAL)
 ---
 **모든 진행과정은 변경 될 수 있습니다.**

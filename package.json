@@ -12,6 +12,7 @@
     "express": "^5.1.0",
     "express-ejs-layouts": "^2.5.1",
     "express-session": "^1.18.2",
+    "module": "^2.0.0",
     "openai": "^6.8.1"
   }
 }
