@@ -30,7 +30,7 @@ export async function analyzeDiary(text) {
     // 기본값 보정
     return {
       mood: json.mood || "calm",
-      keywords: Array.isArray(json.keywords) && json.keywords.length ? json.keywords.slice(0, 8) : ["ambient","soft","instrumental"],
+      keywords: Array.isArray(json.keywords) && json.keywords.length ? json.keywords.slice(0, 8) : ["ambient", "soft", "instrumental"],
       energy: clamp(json.energy, 0, 1, 0.5),
       valence: clamp(json.valence, 0, 1, 0.5)
     };

@@ -1,15 +1,30 @@
 import { searchTracks } from "./spotify.js";
 
+import { Router } from "express";
+const r = Router();
+
+// 추천 페이지 라우트
+r.get("/", (req, res) => {
+  // 세션에 저장된 분석 결과 가져오기
+  const analysis = req.session.analysis || null;
+
+  res.render("recommend", {
+    analysis: analysis
+    // 필요한 경우 추천 음악 리스트 등도 함께 전달
+  });
+});
+export default r;
+
 // mood → target audio profile
 const MOOD_TARGET = {
-  happy:      { energy: 0.7, valence: 0.8 },
-  sad:        { energy: 0.3, valence: 0.2 },
-  angry:      { energy: 0.9, valence: 0.2 },
-  calm:       { energy: 0.25, valence: 0.6 },
-  energetic:  { energy: 0.85, valence: 0.7 },
-  romantic:   { energy: 0.4, valence: 0.75 },
-  melancholic:{ energy: 0.35, valence: 0.3 },
-  focused:    { energy: 0.35, valence: 0.55 }
+  happy: { energy: 0.7, valence: 0.8 },
+  sad: { energy: 0.3, valence: 0.2 },
+  angry: { energy: 0.9, valence: 0.2 },
+  calm: { energy: 0.25, valence: 0.6 },
+  energetic: { energy: 0.85, valence: 0.7 },
+  romantic: { energy: 0.4, valence: 0.75 },
+  melancholic: { energy: 0.35, valence: 0.3 },
+  focused: { energy: 0.35, valence: 0.55 }
 };
 
 export async function recommend({ mood, keywords, energy, valence }, { market = "KR", perQuery = 20, topK = 20 } = {}) {
@@ -27,7 +42,7 @@ export async function recommend({ mood, keywords, energy, valence }, { market = 
   const uniq = dedup(pool, x => x.id);
 
   // 점수화
-  for (const tr of uniq) tr.score = score(tr,{keywords});
+  for (const tr of uniq) tr.score = score(tr, { keywords });
 
   // 정렬 상위 반환
   uniq.sort((a, b) => b.score - a.score);
