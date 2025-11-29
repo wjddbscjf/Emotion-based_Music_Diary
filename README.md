@@ -1,8 +1,9 @@
 # 🎵 감정 기반 음악 추천 일기 (Emotion-based Music Diary)
 ---
 
-[진행과정](Progress.md)
 <img src="images/logo_2.png" width=400>
+
+[진행과정](Progress.md)
 
 ## 🧠 Abstract
 
