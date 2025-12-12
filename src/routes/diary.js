@@ -12,7 +12,22 @@ r.post("/analyze", async (req, res, next) => {
     const result = await analyzeDiary(text || "");
     req.session.analysis = { ...result, at: Date.now(), raw: text || "" };
     res.redirect("/recommend");
-  } catch (e) { next(e); }
+  } catch (e) {
+    //기존 제거: next(e);
+
+    // ★ MODIFIED START: 분석 실패 시 calm fallback 적용
+    req.session.analysis = {
+      mood: "calm",
+      keywords: ["ambient", "soft", "instrumental"],
+      energy: 0.3,
+      valence: 0.6,
+      at: Date.now(),
+      raw: req.body?.text || "",
+      fallback: true,
+    };
+    res.redirect("/recommend");
+    // ★ MODIFIED DONE
+  }
 });
 
 export default r;

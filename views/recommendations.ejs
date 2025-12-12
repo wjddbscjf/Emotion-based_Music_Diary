@@ -2,41 +2,45 @@
   <h2>Recommendations</h2>
   <div class="box">
     <strong>Mood:</strong>
-    <%= analysis.mood %>
-      &nbsp;|&nbsp;<strong>Keywords:</strong>
-      <%= (analysis.keywords||[]).join(', ') %>
+    <%= analysis.mood %> &nbsp;|&nbsp;<strong>Keywords:</strong>
+    <%= (analysis.keywords||[]).join(', ') %>
   </div>
-
+  <!-- ================== [추가] ================== -->
+  <% if (emotionQuote) { %>
+  <div class="box" style="margin-top: 12px; font-style: italic">
+    <%= emotionQuote %>
+  </div>
+  <% } %>
+  <!-- ============================================ -->
   <div class="grid">
     <% recos.forEach(t => { %>
-      <div class="card">
-        <% if (t.albumImg) { %><img src="<%= t.albumImg %>" alt="cover"/><% } %>
-        <div class="meta">
-          <div class="title"><%= t.title %></div>
-          <div class="artists"><%= t.artists.join(' , ') %></div>
-        </div>
-        <div class="links">
-          <% if (t.preview) { %>
-            <audio controls src="<%= t.preview %>"></audio>
-          <% } %>
-          <% if (t.url) { %>
-            <a class="btn small" href="<%= t.url %>" target="_blank">Open</a>
-          <% } %>
-        </div>
+    <div class="card">
+      <% if (t.albumImg) { %><img src="<%= t.albumImg %>" alt="cover" /><% } %>
+      <div class="meta">
+        <div class="title"><%= t.title %></div>
+        <div class="artists"><%= t.artists.join(' , ') %></div>
       </div>
+      <div class="links">
+        <% if (t.preview) { %>
+        <audio controls src="<%= t.preview %>"></audio>
+        <% } %> <% if (t.url) { %>
+        <a class="btn small" href="<%= t.url %>" target="_blank">Open</a>
+        <% } %>
+      </div>
+    </div>
     <% }) %>
   </div>
 </section>
 <body>
   <% if (typeof analysis !== ' undefined' && analysis && analysis.mood) { %>
-        <script>
-          // 페이지가 로드되자마자 body에 mood 속성을 입힙니다.
-          document.body.setAttribute('data-mood', '<%= analysis.mood %>');
-        </script>
-        <% } else { %>
-          <script>
-            // 분석 결과가 없으면 기본 테마로 복구
-            document.body.removeAttribute('data-mood');
-          </script>
-          <% } %>
-            </body>
+  <script>
+    // 페이지가 로드되자마자 body에 mood 속성을 입힙니다.
+    document.body.setAttribute("data-mood", "<%= analysis.mood %>");
+  </script>
+  <% } else { %>
+  <script>
+    // 분석 결과가 없으면 기본 테마로 복구
+    document.body.removeAttribute("data-mood");
+  </script>
+  <% } %>
+</body>
