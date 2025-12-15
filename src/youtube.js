@@ -5,11 +5,28 @@ import db from "./db.js";
 const MUSIC_CATEGORY_ID = "10";
 const LIKED_PLAYLIST_ID = "LL"; // 좋아요 동영상은 특수 재생목록 "LL"
 const MAX_API_PAGE_SIZE = 50;   // YouTube Data API 페이지당 최대 50
+const SHORTS_MAX_SEC = 90;
 
 // YouTube API 클라이언트 생성 함수
 function yt(auth) {
   return google.youtube({ version: "v3", auth });
 }
+
+/* 영상 길이를 초로 변환 */
+function parseDurationSeconds(iso) {
+  if (!iso || typeof iso !== "string") return null;
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return null;
+  const h = Number(m[1] || 0);
+  const min = Number(m[2] || 0);
+  const s = Number(m[3] || 0);
+  return h * 3600 + min * 60 + s;
+}
+
+function isShortsLike({ durationSeconds }) {
+  return durationSeconds != null && durationSeconds <= SHORTS_MAX_SEC;
+}
+
 
 /**
  * 좋아요(LL) 재생목록에서 videoId 목록을 최대 max개까지 가져옵니다.
@@ -59,13 +76,14 @@ export async function fetchVideoMeta(auth, videoIds) {
   for (let i = 0; i < videoIds.length; i += MAX_API_PAGE_SIZE) {
     const slice = videoIds.slice(i, i + MAX_API_PAGE_SIZE);
     const { data } = await ytapi.videos.list({
-      part: ["snippet"],
+      part: ["snippet", "contentDetails"],
       id: slice,
     });
 
     const items = data.items || [];
     for (const it of items) {
       const sn = it?.snippet;
+      const durSec = parseDurationSeconds(it?.contentDetails?.duration);
 
       out.push({
         videoId: it?.id,
@@ -74,11 +92,36 @@ export async function fetchVideoMeta(auth, videoIds) {
         categoryId: sn?.categoryId || null,
         publishedAt: sn?.publishedAt || null,
         thumbnail: sn?.thumbnails?.medium?.url || sn?.thumbnails?.default?.url || null,
+        durationSeconds: durSec,
       });
     }
   }
 
   return out;
+}
+
+async function fetchVideoDurations(auth, videoIds) {
+  if (!videoIds.length) return new Map();
+
+  const ytapi = yt(auth);
+  const map = new Map();
+
+  for (let i = 0; i < videoIds.length; i += MAX_API_PAGE_SIZE) {
+    const slice = videoIds.slice(i, i + MAX_API_PAGE_SIZE);
+    const { data } = await ytapi.videos.list({
+      part: ["contentDetails"],
+      id: slice,
+    });
+
+    const items = data.items || [];
+    for (const it of items) {
+      const vid = it?.id;
+      if (!vid) continue;
+      map.set(vid, parseDurationSeconds(it?.contentDetails?.duration));
+    }
+  }
+
+  return map;
 }
 
 /**
@@ -99,8 +142,27 @@ export async function syncLikesForUser(userId, auth, { force = false } = {}) {
   const ids = await fetchLikedVideoIds(auth, 300);
   const metas = await fetchVideoMeta(auth, ids);
 
-  // 음악 카테고리(10)만 필터링
-  const onlyMusic = metas.filter((m) => m.categoryId === MUSIC_CATEGORY_ID);
+  // 음악 카테고리(10)+쇼츠 필터링
+  const onlyMusic = metas
+    .filter(m => m.categoryId === MUSIC_CATEGORY_ID)
+    .filter(m => !isShortsLike(m));
+
+  let shortsRemoved = 0;
+  const musicNoShorts = onlyMusic.filter((m) => {
+    const dur = m.durationSeconds;
+    if (dur != null && dur <= SHORTS_MAX_SEC) {
+      shortsRemoved += 1;
+      return false;
+    }
+    return true;
+  });
+
+  console.log("[yt-sync] shorts filtered", {
+    removed: shortsRemoved,
+    kept: musicNoShorts.length,
+    total: onlyMusic.length,
+    threshold: SHORTS_MAX_SEC,
+  });
 
   const insert = db.prepare(
     "INSERT OR REPLACE INTO liked_videos(user_id, video_id, title, channel_title, category_id, published_at, thumbnail_url) VALUES(?,?,?,?,?,?,?)"
@@ -120,14 +182,14 @@ export async function syncLikesForUser(userId, auth, { force = false } = {}) {
       );
     }
   });
-  tx(onlyMusic);
+  tx(musicNoShorts);
 
   db.prepare(
     "INSERT OR REPLACE INTO step_status(user_id, step, done_at) VALUES(?, 'synced_likes', datetime('now'))"
   ).run(userId);
 
-  console.log("[yt-sync]", { skipped: false, count: onlyMusic.length });
-  return { skipped: false, count: onlyMusic.length };
+  console.log("[yt-sync]", { skipped: false, count: musicNoShorts.length });
+  return { skipped: false, count: musicNoShorts.length };
 }
 
 /**
@@ -174,7 +236,27 @@ export async function searchByQueries(auth, queries, { perQuery = 50 } = {}) {
   }
 
   console.log("[search] total unique =", candidates.size);
-  return [...candidates.values()];
+  const durations = await fetchVideoDurations(auth, [...candidates.keys()]);
+
+  let shortsRemoved = 0;
+  const filtered = [];
+  for (const cand of candidates.values()) {
+    const dur = durations.get(cand.videoId);
+    if (dur != null && dur <= SHORTS_MAX_SEC) {
+      shortsRemoved += 1;
+      continue;
+    }
+    filtered.push({ ...cand, durationSeconds: dur ?? null });
+  }
+
+  console.log("[search] shorts filtered", {
+    removed: shortsRemoved,
+    kept: filtered.length,
+    total: candidates.size,
+    threshold: SHORTS_MAX_SEC,
+  });
+
+  return filtered;
 }
 
 /**
