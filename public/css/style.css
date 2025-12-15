@@ -1,216 +1,278 @@
+/* =========================
+  0) 기본 색상/변수
+  - 전체 톤을 한 곳에서 관리
+========================= */
 :root {
-    --bg: #0f1115;
-    --fg: #e6e6e6;
-    --muted: #a0a3aa;
-    --card: #171a21;
-    --accent: #3ea6ff;
+  --bg: #0f1115;
+  --fg: #e6e6e6;
+  --muted: #a0a3aa;
+  --card: #171a21;
+  --accent: #3ea6ff;
+  --line: #242938;
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
 
-html,
+/* =========================
+  전체 레이아웃(layout.ejs)
+========================= */
 body {
-    height: 100%;
+  margin: 0;
+  font-family: system-ui, Segoe UI, Roboto, Apple Color Emoji, Noto Color Emoji;
+  background: var(--bg);
+  color: var(--fg);
 }
 
-body {
-    margin: 0;
-    font-family: system-ui, Segoe UI, Roboto, Apple Color Emoji, Noto Color Emoji;
-    background: var(--bg);
-    color: var(--fg);
-}
-
-a {
-    color: var(--accent);
-    text-decoration: none;
-}
+a { color: var(--accent); text-decoration: none; }
 
 .container {
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
 }
 
+/* =========================
+  상단 네비(partials/nav)
+========================= */
 .nav {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid #222;
-    background: #10131a;
-    position: sticky;
-    top: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #222;
+  background: #10131a;
 }
 
-.nav .brand {
-    font-weight: 700;
-    color: #fff;
-}
+.nav .brand { font-weight: 800; color: #fff; }
+.nav .spacer { flex: 1; }
 
-.nav .spacer {
-    flex: 1;
-}
-
-.panel {
-    background: transparent;
-}
-
+/* =========================
+ 공통 버튼/입력/박스
+  - home, diary, recommendation, youtube 추천 화면 공통
+========================= */
 .btn {
-    background: var(--accent);
-    color: #000;
-    border: 0;
-    padding: 10px 14px;
-    border-radius: 8px;
-    display: inline-block;
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #0b0c0f;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .btn.outline {
-    background: transparent;
-    color: var(--accent);
-    border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .btn.small {
-    padding: 6px 10px;
-    font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 14px;
 }
+
+.btn.disabled,
+.btn[aria-disabled="true"] {
+  opacity: .45;
+  pointer-events: none;
+}
+
+/* home.ejs의 동기화 버튼 클릭 시 사용 */
+.btn.busy { opacity: .75; pointer-events: none; }
 
 textarea {
-    width: 100%;
-    background: var(--card);
-    color: var(--fg);
-    border: 1px solid #2a2f3a;
-    border-radius: 8px;
-    padding: 12px;
+  width: 100%;
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
 }
 
+/* recommendation.ejs 상단 요약 */
 .box {
-    background: var(--card);
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #242938;
+  margin-top: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
 }
 
+/* =========================
+  카드 그리드(추천 목록)
+  - recommendation.ejs / youtube_recommendations.ejs
+========================= */
 .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-    margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .card {
-    background: var(--card);
-    border: 1px solid #242938;
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .card img {
-    width: 100%;
-    height: 220px;
-    object-fit: cover;
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
 }
 
-.card .meta {
-    padding: 10px;
-}
-
-.card .title {
-    font-weight: 700;
-}
-
-.card .artists {
-    color: var(--muted);
-    font-size: 14px;
-    margin-top: 4px;
-}
+.card .meta { padding: 10px; }
+.card .title { font-weight: 800; }
+.card .artists { color: var(--muted); font-size: 14px; margin-top: 4px; }
 
 .card .links {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
 }
 
-audio {
-    width: 100%;
+audio { width: 100%; }
+
+/* 유튜브 추천 점수 표시에 사용 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
 }
 
-.actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
+.badge.yt { border-color: #2b3245; }
+
+/* =========================
+  홈 화면(home.ejs)
+  - 상단 (설명/유튜브 프로필)
+  - 하단 2개 안내 카드
+========================= */
+.home { padding: 8px 0 36px; }
+
+.home .hero {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
 }
 
-/* 테마 변경 시 부드럽게 전환되는 효과 */
-body {
-    transition: background-color 0.6s ease, color 0.6s ease;
+.home .hero-text h1 {
+  margin: 0 0 10px;
+  font-size: 32px;
 }
 
-body .btn,
-body .box,
-body .card {
-    transition: background-color 0.6s ease, border-color 0.6s ease, color 0.6s ease;
+.home .lead {
+  margin: 0 0 14px;
+  line-height: 1.6;
+  color: var(--muted);
 }
 
-body[data-mood="happy"] {
-    --bg: #1a1600;
-    /* 옅은 검정 */
-    --card: #2e2600;
-    --accent: #ffcc00;
-    /* 노란색 */
+.home .hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0 10px;
 }
 
-body[data-mood="sad"] {
-    --bg: #050a14;
-    --card: #0f1829;
-    --accent: #4dabf7;
-    /* 물빠진 하늘색 */
+.home .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
 }
 
-body[data-mood="angry"] {
-    --bg: #1a0505;
-    --card: #2b0a0a;
-    --accent: #ff4d4d;
-    /* 붉은색 */
+/* 유튜브 프로필 블럭 */
+.home .account-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--card);
 }
 
-body[data-mood="calm"] {
-    --bg: #0a140a;
-    --card: #142614;
-    --accent: #4caf50;
-    /* 초록색 */
+.home .account-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-body[data-mood="energetic"] {
-    --bg: #001414;
-    --card: #002626;
-    --accent: #00ffcc;
-    /* 민트 */
+/* 프로필 이미지 */
+.home .avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #10131a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-body[data-mood="romantic"] {
-    --bg: #14050b;
-    --card: #290b16;
-    --accent: #ff66b2;
-    /* 핑크색 */
+.home .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.home .avatar span { font-weight: 900; color: var(--muted); }
+
+.home .account-title { font-weight: 900; }
+.home .account-sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+.home .account-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-body[data-mood="melancholic"] {
-    --bg: #0f0a14;
-    --card: #1d1426;
-    --accent: #9d8db5;
-    /* 연보라 */
+/* 하단 2개 카드(일기/유튜브 ) */
+.home .home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
 }
 
-body[data-mood="focused"] {
-    --bg: #081014;
-    --card: #0f1e26;
-    --accent: #00bcd4;
-    /* 청록색 */
+.home .home-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  background: var(--card);
 }
+
+.home .home-card h2 { margin: 10px 0 6px; font-size: 20px; }
+.home .muted { margin: 0; line-height: 1.6; color: var(--muted); }
+
+.home .card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* =========================
+  일기 화면(diary.ejs)
+========================= */
+.diary-page textarea {
+  min-height: 360px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* =========================
+  mood 테마(recommendation.ejs)
+  - 추천 결과 mood에 따라 색 변경
+========================= */
+body[data-mood="happy"] { --bg:#1a1600; --card:#2e2600; --accent:#ffcc00; }
+body[data-mood="sad"] { --bg:#050a14; --card:#0f1829; --accent:#4dabf7; }
+body[data-mood="angry"] { --bg:#1a0505; --card:#2b0a0a; --accent:#ff4d4d; }
+body[data-mood="calm"] { --bg:#0a140a; --card:#142614; --accent:#4caf50; }
+body[data-mood="energetic"] { --bg:#001414; --card:#002626; --accent:#00ffcc; }
+body[data-mood="romantic"] { --bg:#14050b; --card:#290b16; --accent:#ff66b2; }
+body[data-mood="melancholic"] { --bg:#0f0a14; --card:#1d1426; --accent:#9d8db5; }
+body[data-mood="focused"] { --bg:#081014; --card:#0f1e26; --accent:#00bcd4; }

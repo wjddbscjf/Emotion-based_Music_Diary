@@ -1,4 +1,4 @@
-<section class="panel">
+<section class="panel diary-page">
   <h2>Write</h2>
   <form method="post" action="/diary/analyze">
     <textarea
@@ -10,11 +10,4 @@
     ></textarea>
     <button class="btn" type="submit">Analyze</button>
   </form>
-
-  <% if (analysis) { %>
-  <div class="box">
-    <h3>Last Analysis</h3>
-    <pre><%= JSON.stringify(analysis, null, 2) %></pre>
-  </div>
-  <% } %>
 </section>
