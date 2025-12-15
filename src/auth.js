@@ -4,12 +4,19 @@ import db from "./db.js";
 // Google OAuth에서 요청할 권한(scope) 목록
 // - openid/email/profile: 로그인 및 기본 프로필
 // - youtube.readonly: 좋아요(LL) 조회 등 YouTube 읽기
-const SCOPES = [
-  "openid",
-  "email",
-  "profile",
-  "https://www.googleapis.com/auth/youtube.readonly",
-];
+const YOUTUBE_SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
+const SCOPES = ["openid", "email", "profile", YOUTUBE_SCOPE];
+
+function hasYoutubeScope(tokens) {
+  const scopeField = tokens?.scope || tokens?.scopes;
+  const scopes = Array.isArray(scopeField)
+    ? scopeField
+    : typeof scopeField === "string"
+    ? scopeField.split(/\s+/).filter(Boolean)
+    : [];
+
+  return scopes.includes(YOUTUBE_SCOPE);
+}
 
 // OAuth2 클라이언트 생성
 // - 환경변수에 등록된 Client ID/Secret/Callback URL을 사용
@@ -115,6 +122,11 @@ export function loadOAuth2ForUser(userId) {
   if (!row) return null;
 
   const tokens = JSON.parse(row.tokens_json);
+  if (!hasYoutubeScope(tokens)) {
+    console.warn("[auth] missing YouTube scope, asking user to re-consent");
+    return null;
+  }
+
   const oauth2 = makeOAuth2Client();
   oauth2.setCredentials(tokens);
 
