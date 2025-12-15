@@ -31,16 +31,15 @@
     <% }) %>
   </div>
 </section>
-<body>
-  <% if (typeof analysis !== ' undefined' && analysis && analysis.mood) { %>
-  <script>
-    // 페이지가 로드되자마자 body에 mood 속성을 입힙니다.
-    document.body.setAttribute("data-mood", "<%= analysis.mood %>");
-  </script>
-  <% } else { %>
-  <script>
-    // 분석 결과가 없으면 기본 테마로 복구
-    document.body.removeAttribute("data-mood");
-  </script>
-  <% } %>
-</body>
+
+<% if (typeof analysis !== 'undefined' && analysis && analysis.mood) { %>
+<script>
+  // 페이지가 로드되자마자 body에 mood 속성을 입힙니다.
+  document.body.setAttribute("data-mood", "<%= analysis.mood %>");
+</script>
+<% } else { %>
+<script>
+  // 분석 결과가 없으면 기본 테마로 복구
+  document.body.removeAttribute("data-mood");
+</script>
+<% } %>

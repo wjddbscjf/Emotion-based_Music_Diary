@@ -1,0 +1,205 @@
+import { google } from "googleapis";
+import db from "./db.js";
+
+// 상수 이름으로 정리
+const MUSIC_CATEGORY_ID = "10";
+const LIKED_PLAYLIST_ID = "LL"; // 좋아요 동영상은 특수 재생목록 "LL"
+const MAX_API_PAGE_SIZE = 50;   // YouTube Data API 페이지당 최대 50
+
+// YouTube API 클라이언트 생성 함수
+function yt(auth) {
+  return google.youtube({ version: "v3", auth });
+}
+
+/**
+ * 좋아요(LL) 재생목록에서 videoId 목록을 최대 max개까지 가져옵니다.
+ * - auth: OAuth2Client (YouTube scope 포함)
+ * - max: 최대 수집 개수(기본 500)
+ */
+export async function fetchLikedVideoIds(auth, max = 300) {
+  const ytapi = yt(auth);
+
+  const ids = [];
+  let pageToken;
+
+  while (ids.length < max) {
+    const { data } = await ytapi.playlistItems.list({
+      part: ["contentDetails"],
+      playlistId: LIKED_PLAYLIST_ID,
+      maxResults: MAX_API_PAGE_SIZE,
+      pageToken,
+    });
+
+    const items = data.items || [];
+    const batch = items
+      .map((i) => i?.contentDetails?.videoId)
+      .filter(Boolean);
+
+    ids.push(...batch);
+    pageToken = data.nextPageToken;
+
+    // 더 이상 페이지가 없거나, 이번 페이지에 데이터가 없으면 종료
+    if (!pageToken || batch.length === 0) break;
+  }
+
+  return ids.slice(0, max);
+}
+
+/**
+ * videoIds(최대 50개/요청)를 videos.list로 조회해 snippet 메타데이터를 가져옵니다.
+ * - videoIds: 조회할 비디오 ID 배열
+ */
+export async function fetchVideoMeta(auth, videoIds) {
+  if (!videoIds.length) return [];
+
+  const ytapi = yt(auth);
+  const out = [];
+
+  // 50개 단위로 요청(YouTube API 제한)
+  for (let i = 0; i < videoIds.length; i += MAX_API_PAGE_SIZE) {
+    const slice = videoIds.slice(i, i + MAX_API_PAGE_SIZE);
+    const { data } = await ytapi.videos.list({
+      part: ["snippet"],
+      id: slice,
+    });
+
+    const items = data.items || [];
+    for (const it of items) {
+      const sn = it?.snippet;
+
+      out.push({
+        videoId: it?.id,
+        title: sn?.title || "",
+        channelTitle: sn?.channelTitle || "",
+        categoryId: sn?.categoryId || null,
+        publishedAt: sn?.publishedAt || null,
+        thumbnail: sn?.thumbnails?.medium?.url || sn?.thumbnails?.default?.url || null,
+      });
+    }
+  }
+
+  return out;
+}
+
+/**
+ * 사용자 좋아요 동영상을 DB(liked_videos)에 동기화합니다.
+ * - 이미 DB에 존재하고 force=false면 스킵합니다.
+ * - 콘솔에는 "스킵 여부/동기화 개수"만 출력합니다.
+ */
+export async function syncLikesForUser(userId, auth, { force = false } = {}) {
+  const already = db
+    .prepare("SELECT COUNT(1) c FROM liked_videos WHERE user_id = ?")
+    .get(userId).c;
+
+  if (already > 0 && !force) {
+    console.log("[yt-sync]", { skipped: true, count: already });
+    return { skipped: true, count: already };
+  }
+
+  const ids = await fetchLikedVideoIds(auth, 300);
+  const metas = await fetchVideoMeta(auth, ids);
+
+  // 음악 카테고리(10)만 필터링
+  const onlyMusic = metas.filter((m) => m.categoryId === MUSIC_CATEGORY_ID);
+
+  const insert = db.prepare(
+    "INSERT OR REPLACE INTO liked_videos(user_id, video_id, title, channel_title, category_id, published_at, thumbnail_url) VALUES(?,?,?,?,?,?,?)"
+  );
+
+  // 여러 행을 DB에 저장하는 작업
+  const tx = db.transaction((rows) => {
+    for (const r of rows) {
+      insert.run(
+        userId,
+        r.videoId,
+        r.title,
+        r.channelTitle,
+        r.categoryId,
+        r.publishedAt,
+        r.thumbnail
+      );
+    }
+  });
+  tx(onlyMusic);
+
+  db.prepare(
+    "INSERT OR REPLACE INTO step_status(user_id, step, done_at) VALUES(?, 'synced_likes', datetime('now'))"
+  ).run(userId);
+
+  console.log("[yt-sync]", { skipped: false, count: onlyMusic.length });
+  return { skipped: false, count: onlyMusic.length };
+}
+
+/**
+ * queries 배열로 YouTube 검색을 수행하고(음악 카테고리 한정),
+ * videoId 기준으로 중복 제거된 후보 목록을 반환합니다.
+ * - perQuery: 쿼리당 최대 수집 개수(실제 요청은 50으로 제한)
+ */
+export async function searchByQueries(auth, queries, { perQuery = 50 } = {}) {
+  const ytapi = yt(auth);
+  const candidates = new Map();
+
+  // API 제한 50을 한 번만 계산
+  const limit = Math.min(perQuery, MAX_API_PAGE_SIZE);
+
+  console.log("[search] queries =", queries);
+
+  for (const q of queries || []) {
+    const { data } = await ytapi.search.list({
+      part: ["snippet"],
+      q,
+      type: ["video"],
+      videoCategoryId: MUSIC_CATEGORY_ID,
+      maxResults: limit,
+      order: "relevance",
+    });
+
+    const items = data.items || [];
+    console.log("[search] q =", q, "requested =", limit, "returned =", items.length);
+
+    for (const it of items) {
+      const id = it?.id?.videoId;
+      if (!id || candidates.has(id)) continue;
+
+      const sn = it?.snippet;
+      candidates.set(id, {
+        videoId: id,
+        title: sn?.title || "",
+        channelTitle: sn?.channelTitle || "",
+        publishedAt: sn?.publishedAt || null,
+        thumbnail: sn?.thumbnails?.medium?.url || sn?.thumbnails?.default?.url || null,
+        sourceQuery: q,
+      });
+    }
+  }
+
+  console.log("[search] total unique =", candidates.size);
+  return [...candidates.values()];
+}
+
+/**
+ * 검색 후보(candidates)를 DB(candidates 테이블)에 upsert 합니다.
+ * - rows: searchByQueries에서 받은 후보 배열
+ */
+export function upsertCandidates(userId, rows) {
+  const ins = db.prepare(
+    "INSERT OR REPLACE INTO candidates(user_id, video_id, title, channel_title, published_at, thumbnail_url, source_query) VALUES(?,?,?,?,?,?,?)"
+  );
+
+  // DB에 저장
+  const tx = db.transaction((arr) => {
+    for (const r of arr) {
+      ins.run(
+        userId,
+        r.videoId,
+        r.title,
+        r.channelTitle,
+        r.publishedAt,
+        r.thumbnail,
+        r.sourceQuery
+      );
+    }
+  });
+
+  tx(rows);
+}

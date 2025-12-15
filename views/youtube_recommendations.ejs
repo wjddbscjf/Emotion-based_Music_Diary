@@ -1,0 +1,22 @@
+<section class="panel">
+  <h2>유튜브 노래 추천</h2>
+  <% if (!rows || rows.length === 0) { %>
+    <p>추천 결과가 없습니다. 먼저 좋아요 동기화와 검색/토큰화를 진행하세요.</p>
+  <% } else { %>
+    <div class="grid">
+      <% rows.forEach(r => { %>
+        <div class="card">
+          <% if (r.thumbnail_url) { %><img src="<%= r.thumbnail_url %>" alt="thumb"><% } %>
+          <div class="meta">
+            <div class="title"><%= r.title %></div>
+            <div class="artists"><%= r.channel_title %></div>
+          </div>
+          <div class="links">
+            <a class="btn small" href="https://www.youtube.com/watch?v=<%= r.video_id %>" target="_blank">열기</a>
+            <span class="badge">score: <%= r.score.toFixed(4) %></span>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</section>
