@@ -63,16 +63,6 @@ app.use("/diary", diaryRoutes);
 app.use("/recommend", recommendRoutes);
 youtubeRoutes(app);
 
-// Spotify OAuth 콜백(코드 수동 캡처용)
-app.get("/callback", (req, res) => {
-  const { code, error } = req.query;
-  if (error) return res.status(400).send(`Error: ${error}`);
-  if (!code) return res.status(400).send("Missing code");
-
-  console.log("[spotify oauth] auth code:", code);
-  res.send("Spotify auth code received. Check server logs to copy the code for token exchange.");
-});
-
 // 에러 핸들러
 app.use((err, req, res, next) => {
   console.error(err);
