@@ -24,7 +24,6 @@ r.get("/", async (req, res, next) => {
     const recos = await recommendTracks({
       analysis,
       searchQueries: spotify.searchQueries,
-      recommendationParams: spotify.recommendationParams,
       topK: 24,
       market,
     });

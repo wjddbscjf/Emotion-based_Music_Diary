@@ -17,7 +17,6 @@ Fields:
 - search_queries: 2-3 concise Spotify search strings, 한국어 자연어 + genre 필터를 함께 쓰는 것을 선호한다.
   예) "에너지 넘치는 밝은 트랙 genre:dance", "비 오는 날 잔잔한 피아노 genre:ambient"
   (필요 시 필터 추가: album/artist/track/year/genre/tag:new/tag:hipster/isrc/upc)
-- seed_genres: 1-3 genres for recommendations
 Keep it compact.`;
 
 
@@ -84,22 +83,11 @@ export async function analyzeDiaryAndBuildSpotify(text) {
 
   const searchQueries = qs.length ? qs : buildFallbackQueries(analysis);
 
-  // Spotify Recommendations용 파라미터 구성
-  const recommendationParams = {
-    seed_genres: normList(json.seed_genres, 5, analysis.genres, "seed_genres", fallbacks).slice(0, 5),
-    target_energy: analysis.energy,
-    target_valence: analysis.valence,
-    ...(analysis.tempo ? { target_tempo: analysis.tempo } : {}),
-    market: analysis.market,
-    limit: 30,
-  };
-
   console.log("[openai] analysis:", analysis);
   console.log("[openai] searchQueries:", searchQueries);
-  console.log("[openai] recParams:", recommendationParams);
   if (fallbacks.length) console.warn("[openai] fallbacks used:", fallbacks);
 
-  return { analysis, searchQueries, recommendationParams };
+  return { analysis, searchQueries };
 }
 
 // 분석만 필요한 경우(호출 편의용 래퍼)

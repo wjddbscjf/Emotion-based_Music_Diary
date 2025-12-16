@@ -45,44 +45,10 @@ app.use(
   })
 );
 
-// 유저의 좋아요 동기화 결과 행 개수 조회
-// 유저의 후보(검색 결과) 저장 행 개수 조회
-// 유저의 유튜브 추천 상황 진행 상태(qstep) 
-const qLikesCount = db.prepare("SELECT COUNT(1) c FROM liked_videos WHERE user_id=?");
-const qCandidatesCount = db.prepare("SELECT COUNT(1) c FROM candidates WHERE user_id=?");
-const qSteps = db.prepare("SELECT step FROM step_status WHERE user_id=?");
-
 // 템플릿에서 공통으로 쓸 locals 주입
 app.use((req, res, next) => {
   // 세션은 모든 페이지에서
   res.locals.session = req.session;
-
-  // 유튜브 요약 정보(홈 화면 표시용)
-  res.locals.yt = null;
-
-  try {
-    const userId = req.session?.userId;
-    if (!userId) return next(); // 로그인 안 했으면
-
-    const likesCount = qLikesCount.get(userId).c;
-    const candidatesCount = qCandidatesCount.get(userId).c;
-
-    const steps = qSteps.all(userId).map((r) => r.step);
-    const stepsMap = {
-      synced_likes: steps.includes("synced_likes"),
-      tokenized_likes: steps.includes("tokenized_likes"),
-      searched_candidates: steps.includes("searched_candidates"),
-      tokenized_candidates: steps.includes("tokenized_candidates"),
-    };
-
-    const doneStepsCount = Object.values(stepsMap).filter(Boolean).length;
-
-    res.locals.yt = { likesCount, candidatesCount, stepsMap, doneStepsCount };
-  } catch {
-    // 실패 시 yt만 비움
-    res.locals.yt = null;
-  }
-
   next();
 });
 

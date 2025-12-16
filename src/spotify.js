@@ -131,22 +131,9 @@ function buildMoodQueries(mood) {
   return qList;
 }
 
-// ===============================
-// 5) Recommendations 엔드포인트 호출
-// ===============================
-async function getRecommendations(params) {
-  // 실패 시 검색 결과로 대체 가능하게 처리
-  try {
-    const data = await apiGET("recommendations", params);
-    return data.tracks || [];
-  } catch (e) {
-    console.warn("[spotify] recommendations failed (ignored):", e?.message || e);
-    return [];
-  }
-}
 
 // ===============================
-// 6) 트랙 정리/점수화/중복 제거
+// 트랙 정리/점수화/중복 제거
 // ===============================
 function toTrack(t) {
   //  트랙 필드 정규화
@@ -250,17 +237,9 @@ function applyArtistCap(sorted, { topK, maxPerArtist }) {
   return out;
 }
 
-function buildRecParams(base, analysis, market) {
-  // recommendations 파라미터는 seed_genres가 없으면 호출 자체가 의미가 없으므로 null 반환
-  const seeds = base?.seed_genres || analysis?.genres || [];
-  const seed_genres = Array.isArray(seeds) ? seeds.filter(Boolean).slice(0, 5) : [];
-  if (!seed_genres.length) return null;
-
-  return { ...base, seed_genres, market };
-}
 
 // ===============================
-// 7) 추천(메인 함수)
+//  추천(메인 함수)
 // ===============================
 /**
  * OpenAI 분석 결과 기반으로 Spotify 트랙을 추천한다.
@@ -302,13 +281,10 @@ export async function recommendTracks({
   );
   const searchPool = dedupById(searchLists.flat().map(toTrack));
 
-  // 3) Recommendations API
-  const recParams = buildRecParams(recommendationParams, analysis, m);
-  if (recParams) console.log("[spotify] recParams:", recParams);
 
-  const recPool = recParams ? dedupById((await getRecommendations(recParams)).map(toTrack)) : [];
+  const recPool = [];
 
-  // 4) 풀 합치기 + 점수화 + 정렬
+  // 3) 풀 합치기 + 점수화 + 정렬
   const merged = dedupKeepBestScore(
     dedupById([...recPool, ...searchPool]).map(t => ({
       ...t,

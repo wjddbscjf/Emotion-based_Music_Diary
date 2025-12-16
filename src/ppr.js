@@ -1,12 +1,14 @@
 import db from "./db.js";
-
+// 유튜브 용 점수화
 /**
  * 좋아요(=liked) 토큰으로 토큰-동시출현(co-occurrence) 그래프를 만든다.
  * - 정점: 토큰(artist/keyword)
+ * - 간선: 같은 영상에서 나온 토큰 쌍
  * - 간선 가중치: 같은 영상에서 함께 등장한 횟수
  */
 function buildGraph(userId) {
-  // SQL을 보기 좋게 정리
+  // tokens 테이블에서 liked 소스의 토큰(artists, keywords)을 전부 가져온다.
+  // source_id는 video_id
   const rows = db
     .prepare(
       `SELECT source_id, artists_json, keywords_json
@@ -15,32 +17,50 @@ function buildGraph(userId) {
     )
     .all(userId);
 
-  //  토큰 모으기
+  // 전체 토큰 집합을 만든다. (중복 제거)
+  // perVideoTokens: 각 영상마다 토큰 배열을 저장해둔다. (간선 생성 용)
   const tokSet = new Set();
   const perVideoTokens = rows.map((r) => {
+
+    // DB에는 JSON 문자열로 저장되어 있으니 다시 배열로
     const artists = JSON.parse(r.artists_json || "[]");
     const keywords = JSON.parse(r.keywords_json || "[]");
+
+    // 한 영상의 토큰 목록 = artists + keywords
     const tokens = [...artists, ...keywords];
+
+     // 전체 토큰 집합에 추가
     for (const t of tokens) tokSet.add(t);
+
     return tokens;
   });
 
+  // Set -> 배열: 정점 목록
   const tokens = [...tokSet];
+
+  // 정점 번호(0..N-1)
   const index = new Map(tokens.map((t, i) => [t, i]));
+
   const N = tokens.length;
 
   // 인접 리스트(각 정점 -> Map(이웃정점, 가중치))
+  // key: 이웃 정점 index j
+  // value: 간선 가중치(동시출현 횟수)
   const adj = Array.from({ length: N }, () => new Map());
 
   // 같은 영상 안에서 동시출현하는 토큰쌍의 간선 가중치 누적
+  // 예) 한 영상에서 [A,B,C]가 나오면 (A-B),(A-C),(B-C) 간선 +1
   for (const toks of perVideoTokens) {
+    // 영상 단위로 처리
     const uniq = [...new Set(toks)];
     for (let i = 0; i < uniq.length; i++) {
       for (let j = i + 1; j < uniq.length; j++) {
+        // 토큰 문자열을 정점 번호로 변환
         const a = index.get(uniq[i]);
         const b = index.get(uniq[j]);
         if (a == null || b == null) continue;
 
+        // 무방향 그래프이므로 양쪽에 가중치 누적
         adj[a].set(b, (adj[a].get(b) || 0) + 1);
         adj[b].set(a, (adj[b].get(a) || 0) + 1);
       }
@@ -53,18 +73,18 @@ function buildGraph(userId) {
 /**
  * Personalized PageRank 계산
  * - seedWeights: Map(token -> weight)
- * - alpha: 텔레포트 확률(개인화 강도)
+ * - alpha: 개인화 강도
  * - iters: 반복 횟수
  */
 function personalizedPageRank({ tokens, index, adj }, seedWeights, { alpha = 0.15, iters = 40 } = {}) {
   const N = tokens.length;
   if (N === 0) return new Map();
 
-  // p: 개인화(텔레포트) 분포
+  // p: 개인화 분포
   const p = new Float64Array(N);
   let sum = 0;
 
-  // seedWeights가 Map이라 가정(현재 코드와 동일)
+  // seedWeights의 (token, weight)를 순회하면서 p에 누적
   for (const [t, w] of seedWeights) {
     const i = index.get(t);
     if (i != null) {
@@ -73,7 +93,7 @@ function personalizedPageRank({ tokens, index, adj }, seedWeights, { alpha = 0.1
     }
   }
 
-  // seed가 없으면 균등 분포로 텔레포트
+  // seed가 없으면 균등 분포로
   if (sum === 0) {
     for (let i = 0; i < N; i++) p[i] = 1 / N;
   } else {
@@ -84,22 +104,25 @@ function personalizedPageRank({ tokens, index, adj }, seedWeights, { alpha = 0.1
   let r = new Float64Array(N);
   r.fill(1 / N);
 
-  // 변경: outdeg 계산을 함수로 분리하지 않고, 표현만 명확히(동작 동일)
+  // outdeg[i] = i 정점에서 나가는 총 가중치 합
+  // outdeg가 0이면 고립정점 케이스
   const outdeg = adj.map((m) => {
     let s = 0;
     for (const v of m.values()) s += v;
-    return s || 1; // 출차수가 0이면 1로 처리(0 나눗셈 방지)
+    return s || 1; // 고립정점 케이스이면 1로 처리(0 나눗셈 방지)
   });
 
   // 반복 갱신: nr = (1-alpha) * (r * 전이) + alpha * p
   for (let k = 0; k < iters; k++) {
     const nr = new Float64Array(N);
 
+    // i에서 j로 (w/outdeg[i]) 비율로 랭크 분배
     for (let i = 0; i < N; i++) {
       for (const [j, w] of adj[i]) {
         nr[j] += (1 - alpha) * r[i] * (w / outdeg[i]);
       }
     }
+    // 개인화 단계: alpha * p를 더한다
     for (let i = 0; i < N; i++) nr[i] += alpha * p[i];
     r = nr;
   }
@@ -132,6 +155,8 @@ function buildSeedFreq(userId) {
 
     for (const t of [...artists, ...keywords]) {
       const prev = freq.get(t) || 0;
+
+      // 상한 2까지만 증가 (3 이상은 고정)
       freq.set(t, prev >= 2 ? 2 : prev + 1);
     }
   }
@@ -152,7 +177,6 @@ export function buildQueriesFromLiked(userId) {
     .sort((a, b) => b[1] - a[1])
     .map(([t]) => t);
 
-  // 정규식은 
   const isArtistLike = (t) => /^[a-z0-9가-힣ぁ-ゟァ-ヿ]/i.test(t);
 
   // 상위 토큰에서 아티스트 후보/키워드 후보 분리

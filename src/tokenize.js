@@ -15,7 +15,7 @@ Rules:
   - DO NOT put the song title itself into keywords.
   - DO NOT put any artist names into keywords.
   - DO NOT put language / format / style / upload-related words into keywords.
-  - Never include words like: cover, covered, song, mv, music video, official, short ver, version, remix, edit, feat, featuring, uploaded, premiere, lyric video, audio, inst, instrumental, 커버, 자작곡, 원곡, drama, (unless truly part of an official title).
+  - Never include words like: cover, covered, song, mv, music video, official, short ver, version, remix, edit, feat, featuring, uploaded, premiere, lyric video, audio, inst, instrumental, 가사, 자막, 커버, 자작곡, 원곡, drama, (unless truly part of an official title).
   - If nothing clear remains, return keywords: [].
 - lowercase latin; keep kana/kanji/hangul; deduplicate; limit artists<=18, keywords<=20.
 - Never include any video id or channel id.`;
