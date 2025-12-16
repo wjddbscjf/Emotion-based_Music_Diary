@@ -116,7 +116,7 @@ function buildMoodQueries(mood) {
   if (!mood) return [];
 
   const krKeywords = MOOD_KR[mood] || [];
-  const krQuery = krKeywords.slice(0, 6).join(" ");
+  const krQuery = krKeywords.join(" ");
   const subGenres = MOOD_SUB_GENRES[mood] || [];
 
   const qList = [
@@ -251,11 +251,11 @@ export async function recommendTracks({
   searchQueries = [],
   recommendationParams = null,
   analysis = {},
-  perQuery = 20,
+  perQuery = 50,
   topK = 24,
   market = "KR",
   maxPerArtist = 3,
-  maxQueries = 8, // 변경: 쿼리 폭주로 느려지는 것을 방지하기 위한 상한(동작은 동일 범주)
+  maxQueries = 8,
 } = {}) {
   const m = market || "KR";
   const mood = analysis?.mood || "";
@@ -281,20 +281,15 @@ export async function recommendTracks({
   );
   const searchPool = dedupById(searchLists.flat().map(toTrack));
 
-
-  const recPool = [];
-
-  // 3) 풀 합치기 + 점수화 + 정렬
-  const merged = dedupKeepBestScore(
-    dedupById([...recPool, ...searchPool]).map(t => ({
-      ...t,
-      score: scoreTrack(t, {
-        keywords: analysis.keywords || [],
-        genres: analysis.genres || [],
-        mood,
-      }),
-    }))
-  );
+  // 3) 합치기 + 점수화 + 정렬
+  const merged = searchPool.map(t => ({
+    ...t,
+    score: scoreTrack(t, {
+    keywords: analysis.keywords || [],
+    genres: analysis.genres || [],
+    mood,
+    }),
+  }));
 
   merged.sort((a, b) => (b.score || 0) - (a.score || 0));
 
@@ -303,7 +298,6 @@ export async function recommendTracks({
 
   console.log("[spotify] pools:", {
     search: searchPool.length,
-    rec: recPool.length,
     merged: merged.length,
     final: finalList.length,
   });
